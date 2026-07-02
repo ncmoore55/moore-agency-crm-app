@@ -18,75 +18,170 @@ st.caption("Professional Client & Project Management System")
 # Dashboard Section
 st.header("📊 Dashboard")
 
-# Retrieve all leads from the database
-df_leads = database.fetch_data("SELECT * FROM leads")
+# Load dashboard data from MySQL
+total_leads = len(database.fetch_data("SELECT lead_id FROM leads"))
 
-# Count the total number of leads
-total_leads = len(df_leads)
+interested_leads = len(database.fetch_data("""
+SELECT lead_id FROM leads
+WHERE lead_status = 'Interested'
+"""))
 
-# Dashboard metric cards
-col1, col2, col3 = st.columns(3)
+clients = len(database.fetch_data("""
+SELECT lead_id FROM leads
+WHERE lead_status = 'Client'
+"""))
+
+open_tasks = len(database.fetch_data("""
+SELECT task_id FROM tasks
+WHERE status != 'Completed'
+"""))
+
+total_interactions = len(database.fetch_data("""
+SELECT interactions_id FROM interactions
+"""))
+
+# Display KPI cards
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    st.metric("Total Leads", total_leads)
+    st.metric("👥 Total Leads", total_leads)
 
 with col2:
-    st.metric("Active Projects", 0)
+    st.metric("🟢 Interested", interested_leads)
 
 with col3:
-    st.metric("Revenue", "$0")
+    st.metric("🔵 Clients", clients)
 
-with st.form("add_lead_form"):
-    business_name = st.text_input("Business Name")
-    industry = st.text_input("Industry")
-    contact_name = st.text_input("Contact Name")
-    email = st.text_input("Email")
-    phone = st.text_input("Phone")
-    city = st.text_input("City")
-    state = st.text_input("State")
-    website_url = st.text_input("Website URL")
-    website_status = st.selectbox("Website Status", ["No Website", "Outdated Website", "Good Website", "Unknown"])
-    lead_status = st.selectbox("Lead Status", ["New Lead", "Contacted", "Interested", "Not Interested", "Client"])
-    source = st.text_input("Source")
-    notes = st.text_area("Notes")
+with col4:
+    st.metric("📋 Open Tasks", open_tasks)
 
-    submitted = st.form_submit_button("Add Lead")
-
-    if submitted:
-        conn = database.get_connection()
-        cursor = conn.cursor()
-
-        sql = """
-        INSERT INTO leads (
-            business_name, industry, contact_name, email, phone,
-            city, state, website_url, website_status, lead_status,
-            source, notes
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-
-        values = (
-            business_name, industry, contact_name, email, phone,
-            city, state, website_url, website_status, lead_status,
-            source, notes
-        )
-
-        database.run_query(sql, values)
-
-        st.success("Lead added successfully!")
+with col5:
+    st.metric("📞 Interactions", total_interactions)
 
 st.divider()
 
-st.subheader("All Leads")
+st.subheader("📊 Lead Pipeline")
 
-# Retrieve all leads from the database
-conn = database.get_connection()
+new_leads = len(database.fetch_data("""
+SELECT lead_id FROM leads
+WHERE lead_status = 'New Lead'
+"""))
 
-df = pd.read_sql(
-    "SELECT * FROM leads ORDER BY created_at DESC",
-    conn
-)
+contacted = len(database.fetch_data("""
+SELECT lead_id FROM leads
+WHERE lead_status = 'Contacted'
+"""))
 
-conn.close()
-# Display the leads in a table
-st.dataframe(df, use_container_width=True)
+interested = len(database.fetch_data("""
+SELECT lead_id FROM leads
+WHERE lead_status = 'Interested'
+"""))
+
+clients = len(database.fetch_data("""
+SELECT lead_id FROM leads
+WHERE lead_status = 'Client'
+"""))
+
+# =====================================================
+# Display the lead pipeline using progress bars
+# =====================================================
+
+total = max(total_leads, 1)
+
+st.write(f"⚪ New Leads ({new_leads})")
+st.progress(new_leads / total)
+
+st.write(f"🟡 Contacted ({contacted})")
+st.progress(contacted / total)
+
+st.write(f"🟢 Interested ({interested})")
+st.progress(interested / total)
+
+st.write(f"🔵 Clients ({clients})")
+st.progress(clients / total)
+
+# =====================================================
+# TODAY'S TASKS
+# =====================================================
+# Show the next 5 open follow-up tasks so the dashboard
+# tells us what needs attention first.
+
+tasks_today = database.fetch_data("""
+SELECT
+    task_name,
+    due_date,
+    status
+FROM tasks
+WHERE status != 'Completed'
+ORDER BY due_date ASC
+LIMIT 5
+""")
+
+st.divider()
+st.subheader("📋 Today's Tasks")
+
+if tasks_today.empty:
+    st.info("No open tasks right now 🎉")
+else:
+    for _, row in tasks_today.iterrows():
+
+        # Format the due date so it is easier to read
+        formatted_due = row["due_date"].strftime("%B %d, %Y")
+
+        with st.container(border=True):
+            st.markdown(f"### ☐ {row['task_name']}")
+            st.caption(f"Due: {formatted_due}")
+            st.write(f"**Status:** {row['status']}")
+
+
+# =====================================================
+# RECENT ACTIVITY
+# =====================================================
+# Show the 5 most recent interactions from all leads.
+
+recent_activity = database.fetch_data("""
+SELECT
+    interaction_type,
+    outcome,
+    subject,
+    interaction_date
+FROM interactions
+ORDER BY interaction_date DESC
+LIMIT 5
+""")
+
+st.divider()
+st.subheader("📞 Recent Activity")
+
+if recent_activity.empty:
+    st.info("No recent activity yet.")
+else:
+    for _, row in recent_activity.iterrows():
+
+        # Format the interaction date for a cleaner dashboard
+        formatted_date = row["interaction_date"].strftime("%B %d, %Y • %I:%M %p")
+
+        with st.container(border=True):
+            st.markdown(f"### 📞 {row['interaction_type']}")
+            st.caption(formatted_date)
+            st.write(f"**Outcome:** {row['outcome']}")
+            st.write(f"**Subject:** {row['subject']}")
+
+# =====================================================
+# QUICK ACTIONS
+# =====================================================
+# Shortcuts to common actions.
+
+st.divider()
+st.subheader("⚡ Quick Actions")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.page_link("pages/1_👥_Leads.py", label="➕ Add Lead")
+
+with col2:
+    st.page_link("pages/1_👥_Leads.py", label="📞 Log Interaction")
+
+with col3:
+    st.page_link("pages/1_👥_Leads.py", label="📋 Add Task")
