@@ -4,7 +4,11 @@ import streamlit as st
 # Import our reusable database functions
 import database
 
+# Shared page styling (rounded cards, buttons, etc.)
+from utils import styles
+
 st.set_page_config(page_title="Website Builder | Nik's Web Design CRM", layout="wide")
+styles.inject_css()
 
 st.title("🌐 Website Builder")
 st.caption("This page does not build websites — it generates a Base44 prompt from a lead's info.")

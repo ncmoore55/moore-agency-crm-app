@@ -4,7 +4,11 @@ import streamlit as st
 # Import our reusable database functions
 import database
 
+# Shared page styling (rounded cards, buttons, etc.)
+from utils import styles
+
 st.set_page_config(page_title="Revenue | Nik's Web Design CRM", layout="wide")
+styles.inject_css()
 
 st.title("💰 Revenue")
 st.caption("Track quoted prices and payment status across all leads.")

@@ -9,12 +9,20 @@ import database
 # Import pandas for displaying SQL data in tables
 import pandas as pd
 
+# Import altair for the two dashboard charts (bundled with Streamlit already)
+import altair as alt
+
+# Shared page styling (rounded cards, buttons, etc.) + the KPI bubble-card helper
+from utils import styles
+
 # Configure the page settings
 st.set_page_config(
     page_title="Nik's Web Design CRM",
     page_icon="💼",
     layout="wide"
 )
+
+styles.inject_css()
 
 # Sidebar title (real page navigation comes from the pages/ folder)
 st.sidebar.title("Nik's Web Design CRM")
@@ -51,41 +59,41 @@ SELECT interactions_id FROM interactions
 revenue_row = database.fetch_data("SELECT SUM(price_quoted) AS total FROM leads").iloc[0]
 estimated_revenue = revenue_row["total"] if revenue_row["total"] else 0
 
-# Display KPI cards (row 1)
+# Display KPI cards (row 1) - colored bubble cards instead of plain st.metric
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    st.metric("👥 Total Leads", total_leads)
+    styles.kpi_card("👥", total_leads, "Total Leads", "violet")
 
 with col2:
-    st.metric("⚪ New Leads", new_leads)
+    styles.kpi_card("⚪", new_leads, "New Leads", "gray")
 
 with col3:
-    st.metric("🟡 Contacted", contacted)
+    styles.kpi_card("🟡", contacted, "Contacted", "amber")
 
 with col4:
-    st.metric("🟢 Interested", interested)
+    styles.kpi_card("🟢", interested, "Interested", "emerald")
 
 with col5:
-    st.metric("🟠 Website Building", website_building)
+    styles.kpi_card("🟠", website_building, "Website Building", "amber")
 
 # Display KPI cards (row 2)
 col6, col7, col8, col9, col10 = st.columns(5)
 
 with col6:
-    st.metric("🔵 Demo Sent", demo_sent)
+    styles.kpi_card("🔵", demo_sent, "Demo Sent", "blue")
 
 with col7:
-    st.metric("💰 Paid Clients", paid)
+    styles.kpi_card("💰", paid, "Paid Clients", "emerald")
 
 with col8:
-    st.metric("📈 Estimated Revenue", f"${estimated_revenue:,.2f}")
+    styles.kpi_card("📈", f"${estimated_revenue:,.2f}", "Estimated Revenue", "violet")
 
 with col9:
-    st.metric("📋 Open Tasks", open_tasks)
+    styles.kpi_card("📋", open_tasks, "Open Tasks", "rose")
 
 with col10:
-    st.metric("📞 Interactions", total_interactions)
+    styles.kpi_card("📞", total_interactions, "Interactions", "blue")
 
 st.divider()
 
@@ -123,6 +131,70 @@ st.progress(completed / total)
 
 st.write(f"🔴 Not Interested ({not_interested})")
 st.progress(not_interested / total)
+
+# =====================================================
+# CHARTS - monthly lead growth + status breakdown
+# =====================================================
+
+st.divider()
+chart_col1, chart_col2 = st.columns([3, 2])
+
+with chart_col1:
+    with st.container(border=True):
+        st.subheader("📈 Monthly Lead Growth")
+
+        monthly_df = database.fetch_data("""
+        SELECT
+            DATE_FORMAT(created_at, '%Y-%m') AS month,
+            COUNT(*) AS leads_added
+        FROM leads
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY month
+        ORDER BY month
+        """)
+
+        # Fill in any months with zero leads so the line doesn't skip gaps
+        last_6_months = pd.period_range(end=pd.Timestamp.today(), periods=6, freq="M").astype(str)
+        monthly_df = (
+            pd.DataFrame({"month": last_6_months})
+            .merge(monthly_df, on="month", how="left")
+            .fillna(0)
+        )
+
+        chart = (
+            alt.Chart(monthly_df)
+            .mark_line(point=True, color="#8B5CF6")
+            .encode(
+                x=alt.X("month:N", title=None),
+                y=alt.Y("leads_added:Q", title="Leads Added"),
+                tooltip=["month", "leads_added"]
+            )
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+with chart_col2:
+    with st.container(border=True):
+        st.subheader("🥧 Leads by Status")
+
+        status_df = database.fetch_data("""
+        SELECT lead_status, COUNT(*) AS count
+        FROM leads
+        GROUP BY lead_status
+        """)
+
+        if status_df.empty:
+            st.info("No leads yet.")
+        else:
+            donut = (
+                alt.Chart(status_df)
+                .mark_arc(innerRadius=55)
+                .encode(
+                    theta="count:Q",
+                    color=alt.Color("lead_status:N", legend=alt.Legend(title=None)),
+                    tooltip=["lead_status", "count"]
+                )
+            )
+            st.altair_chart(donut, use_container_width=True)
 
 # =====================================================
 # TODAY'S TASKS

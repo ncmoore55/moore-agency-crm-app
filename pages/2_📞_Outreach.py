@@ -4,7 +4,11 @@ import streamlit as st
 # Import our reusable database functions
 import database
 
+# Shared page styling (rounded cards, buttons, etc.)
+from utils import styles
+
 st.set_page_config(page_title="Outreach | Nik's Web Design CRM", layout="wide")
+styles.inject_css()
 
 st.title("📞 Outreach")
 st.caption("Copy-ready text templates for reaching out to leads.")
