@@ -1,4 +1,4 @@
-# My agency-crm-app 
+# My agency-crm-app
 
 # Import the Streamlit library to build the web application
 import streamlit as st
@@ -9,27 +9,34 @@ import database
 # Import pandas for displaying SQL data in tables
 import pandas as pd
 
+# Configure the page settings
+st.set_page_config(
+    page_title="Nik's Web Design CRM",
+    page_icon="💼",
+    layout="wide"
+)
 
-st.set_page_config(page_title="Agency CRM", layout="wide")
+# Sidebar title (real page navigation comes from the pages/ folder)
+st.sidebar.title("Nik's Web Design CRM")
 
-st.title("🏢 Moore Agency CRM")
+st.title("🏢 Nik's Web Design CRM")
 st.caption("Professional Client & Project Management System")
 
 # Dashboard Section
 st.header("📊 Dashboard")
 
-# Load dashboard data from MySQL
+# Load lead counts by status from MySQL
 total_leads = len(database.fetch_data("SELECT lead_id FROM leads"))
 
-interested_leads = len(database.fetch_data("""
-SELECT lead_id FROM leads
-WHERE lead_status = 'Interested'
-"""))
-
-clients = len(database.fetch_data("""
-SELECT lead_id FROM leads
-WHERE lead_status = 'Client'
-"""))
+new_leads = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'New Lead'"))
+contacted = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Contacted'"))
+interested = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Interested'"))
+website_building = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Website Building'"))
+demo_sent = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Demo Sent'"))
+negotiating = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Negotiating'"))
+paid = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Paid'"))
+completed = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Completed'"))
+not_interested = len(database.fetch_data("SELECT lead_id FROM leads WHERE lead_status = 'Not Interested'"))
 
 open_tasks = len(database.fetch_data("""
 SELECT task_id FROM tasks
@@ -40,47 +47,49 @@ total_interactions = len(database.fetch_data("""
 SELECT interactions_id FROM interactions
 """))
 
-# Display KPI cards
+# Estimated revenue = sum of every price quoted so far, regardless of payment status
+revenue_row = database.fetch_data("SELECT SUM(price_quoted) AS total FROM leads").iloc[0]
+estimated_revenue = revenue_row["total"] if revenue_row["total"] else 0
+
+# Display KPI cards (row 1)
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     st.metric("👥 Total Leads", total_leads)
 
 with col2:
-    st.metric("🟢 Interested", interested_leads)
+    st.metric("⚪ New Leads", new_leads)
 
 with col3:
-    st.metric("🔵 Clients", clients)
+    st.metric("🟡 Contacted", contacted)
 
 with col4:
-    st.metric("📋 Open Tasks", open_tasks)
+    st.metric("🟢 Interested", interested)
 
 with col5:
+    st.metric("🟠 Website Building", website_building)
+
+# Display KPI cards (row 2)
+col6, col7, col8, col9, col10 = st.columns(5)
+
+with col6:
+    st.metric("🔵 Demo Sent", demo_sent)
+
+with col7:
+    st.metric("💰 Paid Clients", paid)
+
+with col8:
+    st.metric("📈 Estimated Revenue", f"${estimated_revenue:,.2f}")
+
+with col9:
+    st.metric("📋 Open Tasks", open_tasks)
+
+with col10:
     st.metric("📞 Interactions", total_interactions)
 
 st.divider()
 
 st.subheader("📊 Lead Pipeline")
-
-new_leads = len(database.fetch_data("""
-SELECT lead_id FROM leads
-WHERE lead_status = 'New Lead'
-"""))
-
-contacted = len(database.fetch_data("""
-SELECT lead_id FROM leads
-WHERE lead_status = 'Contacted'
-"""))
-
-interested = len(database.fetch_data("""
-SELECT lead_id FROM leads
-WHERE lead_status = 'Interested'
-"""))
-
-clients = len(database.fetch_data("""
-SELECT lead_id FROM leads
-WHERE lead_status = 'Client'
-"""))
 
 # =====================================================
 # Display the lead pipeline using progress bars
@@ -88,7 +97,7 @@ WHERE lead_status = 'Client'
 
 total = max(total_leads, 1)
 
-st.write(f"⚪ New Leads ({new_leads})")
+st.write(f"⚪ New Lead ({new_leads})")
 st.progress(new_leads / total)
 
 st.write(f"🟡 Contacted ({contacted})")
@@ -97,8 +106,23 @@ st.progress(contacted / total)
 st.write(f"🟢 Interested ({interested})")
 st.progress(interested / total)
 
-st.write(f"🔵 Clients ({clients})")
-st.progress(clients / total)
+st.write(f"🟠 Website Building ({website_building})")
+st.progress(website_building / total)
+
+st.write(f"🔵 Demo Sent ({demo_sent})")
+st.progress(demo_sent / total)
+
+st.write(f"🟣 Negotiating ({negotiating})")
+st.progress(negotiating / total)
+
+st.write(f"💰 Paid ({paid})")
+st.progress(paid / total)
+
+st.write(f"✅ Completed ({completed})")
+st.progress(completed / total)
+
+st.write(f"🔴 Not Interested ({not_interested})")
+st.progress(not_interested / total)
 
 # =====================================================
 # TODAY'S TASKS

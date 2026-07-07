@@ -1,6 +1,9 @@
 # Import the MySQL connector library so Python can communicate with MySQL
 import mysql.connector
 
+import warnings
+warnings.filterwarnings("ignore", message="pandas only supports SQLAlchemy")
+
 import pandas as pd
 
 # Function to create and return a connection to our MySQL database
@@ -23,13 +26,14 @@ def get_connection():
     )
 
 # Function to retrieve data from the database
-def fetch_data(query):
+def fetch_data(query, params=None):
 
-    # Create a connection to the database 
+    # Create a connection to the database
     conn = get_connection()
 
     # Execute the SQL query and store the results in a DataFrame
-    df = pd.read_sql(query, conn)
+    # params lets callers pass values safely instead of splicing them into the query string
+    df = pd.read_sql(query, conn, params=params)
 
     # Close the database connection
     conn.close()
