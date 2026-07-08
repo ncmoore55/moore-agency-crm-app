@@ -1,28 +1,34 @@
-# Import the MySQL connector library so Python can communicate with MySQL
+# Import the MySQL connector library
 import mysql.connector
 
-import warnings
-warnings.filterwarnings("ignore", message="pandas only supports SQLAlchemy")
-
+# Import pandas for reading SQL queries into DataFrames
 import pandas as pd
 
-# Function to create and return a connection to our MySQL database
+# Import os so we can read environment variables
+import os
+
+# Import dotenv so Python can load variables from the .env file
+from dotenv import load_dotenv
+
+# Ignore the SQLAlchemy warning from pandas
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="pandas only supports SQLAlchemy"
+)
+
+# Load the environment variables from the .env file
+load_dotenv()
+
 def get_connection():
 
-    # Connect to the agency_crm database using our login credentials
     return mysql.connector.connect(
 
-        # The database server is running on this computer
-        host="localhost",
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME")
 
-        # MySQL username
-        user="root",
-
-        # MySQL password
-        password="Lacrosse12!",
-
-        # The database (schema) we want to connect to
-        database="agency_crm"
     )
 
 # Function to retrieve data from the database

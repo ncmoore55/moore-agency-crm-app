@@ -1,0 +1,72 @@
+# ============================================
+# GitHub Actions Workflow
+# Nik's Web Design CRM
+# ============================================
+
+# Display name shown in the GitHub Actions tab
+name: CRM Continuous Integration
+
+# Define when this workflow should run
+on:
+
+  # Run every time code is pushed to the main branch
+  push:
+    branches:
+      - main
+
+  # Also run when a Pull Request is opened against main
+  pull_request:
+    branches:
+      - main
+
+# Jobs GitHub should execute
+jobs:
+
+  # Build and validate the CRM project
+  build:
+
+    # Create a fresh Ubuntu virtual machine
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Download the repository onto the virtual machine
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+        # Install Python on the GitHub runner
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+        # Install the Python packages listed in requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+        # Verify that the project's required files exist
+      - name: Verify Project Structure
+        run: |
+          # Verify the main Streamlit application exists
+          test -f app.py
+
+          # Verify the database helper exists
+          test -f database.py
+
+          # Verify the dependency file exists
+          test -f requirements.txt
+
+          # Verify the tests folder exists
+          test -d tests
+
+        # Analyze the project for code quality issues
+      - name: Run Ruff Linter
+        run: |
+          ruff check .
+
+        # Run the automated test suite
+      - name: Run Automated Tests
+        run: |
+          pytest

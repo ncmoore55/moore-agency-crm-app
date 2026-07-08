@@ -1,0 +1,48 @@
+# ============================================
+# Python
+# ============================================
+
+# Ignore Python bytecode cache files
+__pycache__/
+*.py[cod]
+
+# ============================================
+# Virtual Environment
+# ============================================
+
+# Ignore the local virtual environment
+venv/
+
+# ============================================
+# Pytest
+# ============================================
+
+# Ignore pytest cache
+.pytest_cache/
+
+# ============================================
+# VS Code
+# ============================================
+
+# Ignore VS Code workspace settings
+.vscode/
+
+# ============================================
+# Environment Variables
+# ============================================
+
+# Ignore local environment variables
+.env
+
+# ============================================
+# Operating System Files
+# ============================================
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Environment variables
+.env
